@@ -1,5 +1,6 @@
 import { pool } from '../config/db';
 import { v4 as uuidv4 } from 'uuid';
+import { Extraction } from '../types/extraction.types';
 
 export interface CreateExtractionInput {
   sessionId: string;
@@ -9,7 +10,7 @@ export interface CreateExtractionInput {
   status?: string;
 }
 
-export const createExtraction = async (data: CreateExtractionInput) => {
+export const createExtraction = async (data: CreateExtractionInput): Promise<Extraction | null> => {
   const id = uuidv4();
 
   const query = `
@@ -37,7 +38,7 @@ export const createExtraction = async (data: CreateExtractionInput) => {
 export const findByHashAndSession = async (
   fileHash: string,
   sessionId: string
-) => {
+): Promise<Extraction | null> => {
   const query = `
     SELECT * FROM extractions
     WHERE file_hash = $1 AND session_id = $2
@@ -46,4 +47,24 @@ export const findByHashAndSession = async (
 
   const result = await pool.query(query, [fileHash, sessionId]);
   return result.rows[0];
+};
+
+export const getExtractionsBySession = async (sessionId: string): Promise<Extraction[] | null> => {
+  const res = await pool.query(
+    `SELECT * FROM extractions WHERE session_id = $1 ORDER BY created_at DESC`,
+    [sessionId]
+  );
+
+  return res.rows;
+};
+
+export const getExtractionById = async (
+  id: string
+): Promise<Extraction | null> => {
+  const result = await pool.query(
+    `SELECT * FROM extractions WHERE id = $1 LIMIT 1`,
+    [id]
+  );
+
+  return result.rows[0] || null;
 };
