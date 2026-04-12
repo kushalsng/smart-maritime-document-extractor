@@ -1,10 +1,9 @@
 import express from "express";
-import dotenv from "dotenv";
+
 
 import { connectDB } from "./config/db";
 import { testQuery } from "./util/db-helper";
 
-dotenv.config();
 
 const startServer = async () => {
   await connectDB();
@@ -13,6 +12,7 @@ const startServer = async () => {
   const app = express();
   app.use(express.json());
 
+  app.use("/api", extractRoutes);
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "OK" });
