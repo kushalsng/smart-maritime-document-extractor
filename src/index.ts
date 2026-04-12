@@ -1,13 +1,18 @@
 import express from "express";
-
+import extractRoutes from "./routes/extract.routes";
 
 import { connectDB } from "./config/db";
 import { testQuery } from "./util/db-helper";
+import { startQueue } from "./queue/startQueue";
+import { registerExtractWorker } from "./queue/extract.worker";
 
 
 const startServer = async () => {
   await connectDB();
   await testQuery();
+
+  await startQueue();
+  await registerExtractWorker();
 
   const app = express();
   app.use(express.json());
