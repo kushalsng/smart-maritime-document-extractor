@@ -7,13 +7,15 @@ export const saveValidation = async (
 ) => {
   const id = uuidv4();
 
-  await pool.query(
+  const validation = await pool.query(
     `
     INSERT INTO validations (id, session_id, result_json)
     VALUES ($1, $2, $3)
+    RETURNING *;
+    
   `,
     [id, sessionId, result]
   );
 
-  return id;
+  return validation.rows[0];
 };

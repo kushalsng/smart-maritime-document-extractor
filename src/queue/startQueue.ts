@@ -1,7 +1,7 @@
-import { boss } from './pgBoss'
+import { boss, queueName } from './pgBoss'
 
 export const startQueue = async () => {
   await boss.start();
-  await boss.createQueue(String(process.env.QUEUE_NAME));
+  await boss.createQueue(queueName);
   console.log('pg-boss started');
 };

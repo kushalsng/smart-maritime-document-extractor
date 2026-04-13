@@ -7,20 +7,21 @@ export class GroqProvider implements LLMProvider {
   });
 
   async extract(base64: string, mimeType: string, prompt: string) {
+    const combinedPrompt = `
+      ${prompt}
+
+      NOTE:
+      The document is provided as base64 below.
+
+      Base64:
+      ${base64} 
+      `;
     const res = await this.client.chat.completions.create({
-      model: process.env.LLM_MODEL || 'llama-3.2-11b-vision-preview',
+      model: process.env.LLM_MODEL || 'openai/gpt-oss-20b',
       messages: [
         {
           role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${mimeType};base64,${base64}`,
-              },
-            },
-          ],
+          content: combinedPrompt,
         },
       ],
     });

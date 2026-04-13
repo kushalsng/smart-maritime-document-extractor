@@ -4,12 +4,14 @@ import { v4 as uuidv4 } from 'uuid';
 export const createSession = async () => {
   const id = uuidv4();
 
-  await pool.query(
-    `INSERT INTO sessions (id) VALUES ($1)`,
+  const result = await pool.query(
+    `INSERT INTO sessions (id)
+     VALUES ($1)
+     RETURNING *`,
     [id]
   );
 
-  return id;
+  return result.rows[0];
 };
 
 export const getSession = async (sessionId: string) => {

@@ -19,3 +19,20 @@ export const validateSessionController = async (
   }
 
   const extractions = await getExtractionsBySession(sessionId);
+
+  if (extractions.length < 2) {
+    return res.status(400).json({
+      error: 'INSUFFICIENT_DOCUMENTS',
+      message: 'At least 2 documents required for validation',
+    });
+  }
+
+  const result = await runValidationLLM(extractions);
+
+  await saveValidation(sessionId, result);
+
+  return res.json({
+    sessionId,
+    ...result,
+  });
+};

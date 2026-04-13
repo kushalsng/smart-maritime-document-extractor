@@ -4,15 +4,16 @@ import { v4 as uuidv4 } from 'uuid';
 export const createJob = async (sessionId: string) => {
   const id = uuidv4();
 
-  await pool.query(
+  const result = await pool.query(
     `
     INSERT INTO jobs (id, session_id, status)
-    VALUES ($1, $2, 'QUEUED');
+    VALUES ($1, $2, 'QUEUED')
+    RETURNING *;
   `,
     [id, sessionId]
   );
 
-  return id;
+  return result.rows[0];
 };
 
 export const updateJobStatus = async (

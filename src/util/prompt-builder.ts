@@ -152,7 +152,7 @@ Return ONLY a valid JSON object. No markdown. No code fences. No preamble.
 }
 `;
 
-export const buildRetryPrompt = () => `
+export const buildRetryPrompt = (mimeType: string, fileName?: string) => `
 This extraction had LOW confidence.
 
 File name: ${fileName}
