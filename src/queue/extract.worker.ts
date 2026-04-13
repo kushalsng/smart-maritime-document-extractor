@@ -1,7 +1,7 @@
 import { boss } from "../queue/pgBoss";
 import { updateJobStatus } from "../repositories/job.repository";
 import { createExtraction } from "../repositories/extraction.repository";
-import { callLLM } from "../services/llm.service";
+import { llmExecutor } from "../services/llm.service";
 import { ExtractJobData } from "../types/job.types";
 
 export const registerExtractWorker = async () => {
@@ -13,7 +13,7 @@ export const registerExtractWorker = async () => {
       try {
         await updateJobStatus(jobId, "PROCESSING");
 
-        const raw = await callLLM(fileBase64, mimeType);
+        const raw = await llmExecutor(fileBase64, mimeType);
 
         const extraction = await createExtraction({
           sessionId,

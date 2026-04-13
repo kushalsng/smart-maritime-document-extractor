@@ -1,6 +1,7 @@
 import fs from 'fs';
 import crypto from 'crypto';
-import { callLLM } from './llm.service';
+import { llmExecutor } from './llm.service';
+import { safeParse } from '../util/prompt-builder';
 
 
 export const extractService = async (file: Express.Multer.File | undefined) => {
@@ -12,7 +13,7 @@ export const extractService = async (file: Express.Multer.File | undefined) => {
 
   const base64 = buffer.toString('base64');
 
-  const raw = await callLLM(base64, file.mimetype);
+  const raw = await llmExecutor(base64, file.mimetype);
 
   const json = safeParse(raw);
 
@@ -21,10 +22,3 @@ export const extractService = async (file: Express.Multer.File | undefined) => {
     data: json
   };
 };
-
-function safeParse(text: string) {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  const cleaned = text.slice(start, end + 1);
-  return JSON.parse(cleaned);
-}
