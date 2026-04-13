@@ -152,9 +152,18 @@ Return ONLY a valid JSON object. No markdown. No code fences. No preamble.
 }
 `;
 
+export const buildRetryPrompt = () => `
+This extraction had LOW confidence.
+
+File name: ${fileName}
+Mime type: ${mimeType}
+
+Retry extraction carefully.
+`;
+
 export function safeParse(text: string) {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
   const cleaned = text.slice(start, end + 1);
   return JSON.parse(cleaned);
 }
