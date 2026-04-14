@@ -1,6 +1,8 @@
+import { LLMTimeoutError } from "./errors";
+
 export const timeout = (ms: number) =>
   new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('LLM timeout')), ms)
+    setTimeout(() => reject(new LLMTimeoutError()), ms)
   );
 
 export const buildError = (

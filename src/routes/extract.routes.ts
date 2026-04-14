@@ -7,6 +7,7 @@ import { getJobController } from '../controllers/job.controller';
 import { getSessionController } from '../controllers/session.controller';
 import { validateSessionController } from '../controllers/validation.controller';
 import { getSessionReportController } from '../controllers/report.controller';
+import { rateLimiter } from '../middleware/rateLimiter';
 
 const router = express.Router();
 const tmpDir = path.join(process.cwd(), 'tmp');
@@ -24,7 +25,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-router.post('/extract', upload.single('document'), extractController);
+router.post('/extract', rateLimiter, upload.single('document'), extractController);
 router.get('/jobs/:jobId', getJobController);
 router.get('/sessions/:sessionId', getSessionController);
 router.post('/sessions/:sessionId/validate', validateSessionController);

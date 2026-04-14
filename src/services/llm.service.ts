@@ -1,35 +1,38 @@
-import { buildExtractionPrompt, buildRetryPrompt, safeParse } from '../util/prompt-builder';
-import { createLLMProvider } from './llm/llm.factory';
-import { timeout } from '../util/misc';
+import {
+  buildExtractionPrompt,
+  buildRetryPrompt,
+  safeParseRawPrompt,
+} from "../util/prompt-builder";
+import { timeout } from "../util/misc";
+import { getLLMProvider } from "../providers/llm.provider.instance";
 
-const getProvider = () => createLLMProvider();
-const LLM_TIMEOUT_MS = 60_000;
+const LLM_TIMEOUT_MS = 30_000;
 
 const withTimeout = async <T>(operation: Promise<T>) =>
   Promise.race([operation, timeout(LLM_TIMEOUT_MS)]) as Promise<T>;
 
 export const llmExecutor = async (
-  base64: string,
+  prompt: string,
   mimeType: string,
   fileName?: string
 ) => {
-  const provider = getProvider();
+  const provider = getLLMProvider();
   if (mimeType === 'text/plain') {
-    return withTimeout(provider.generateText(base64));
+    return withTimeout(provider.generateText(prompt));
   }
 
   const raw = await withTimeout(
-    provider.extract(base64, mimeType, buildExtractionPrompt())
+    provider.extract(prompt, mimeType, buildExtractionPrompt())
   );
 
-  const parsed = await safeParse(raw);
+  const parsed = await safeParseRawPrompt(raw);
 
   if (parsed?.detection?.confidence === 'LOW') {
     const retryRaw = await withTimeout(
       provider.extract(
-        base64,
+        prompt,
         mimeType,
-        buildRetryPrompt(mimeType, fileName)
+        buildRetryPrompt(raw, mimeType, fileName)
       )
     );
 
@@ -38,5 +41,3 @@ export const llmExecutor = async (
 
   return raw;
 };
-
-export const callLLM = llmExecutor;

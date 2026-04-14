@@ -10,7 +10,7 @@ export const resolveSession = async (sessionId?: string): Promise<Session> => {
     const existing = await getSession(sessionId);
     if (existing) return existing;
 
-    throw createSession();
+    return createSession();
   }
 
   return createSession();

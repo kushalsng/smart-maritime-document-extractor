@@ -7,6 +7,7 @@ import { mapLLMToExtraction, mapLLMToResponse } from "../util/extract.util";
 import { buildError } from "../util/misc";
 import { updateJobStatus } from "../repositories/job.repository";
 import { Session } from "../types/extraction.types";
+import { LLMTimeoutError } from "../util/errors";
 
 export const extractService = async (
   file: Express.Multer.File,
@@ -135,8 +136,10 @@ export const processExtractionJob = async ({
       extractionId: extraction.id,
     });
   } catch (err: any) {
-    await updateJobStatus(jobId, "FAILED", {
-      error: err?.message,
-    });
+    const isTimeout = err instanceof LLMTimeoutError;
+    await updateJobStatus(jobId, 'FAILED', {
+    error: err.message,
+    retryable: isTimeout,
+  });
   }
 };

@@ -1,3 +1,5 @@
+import { llmExecutor } from "../services/llm.service";
+
 export const buildValidationPrompt = (documents: any[]) => {
   return `
 You are a senior maritime compliance auditor.
@@ -152,7 +154,11 @@ Return ONLY a valid JSON object. No markdown. No code fences. No preamble.
 }
 `;
 
-export const buildRetryPrompt = (mimeType: string, fileName?: string) => `
+export const buildRetryPrompt = (
+  raw: string,
+  mimeType: string,
+  fileName?: string,
+) => `
 This extraction had LOW confidence.
 
 File name: ${fileName}
@@ -161,9 +167,39 @@ Mime type: ${mimeType}
 Retry extraction carefully.
 `;
 
-export function safeParse(text: string) {
+const extractJSON = (text: string) => {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
-  const cleaned = text.slice(start, end + 1);
-  return JSON.parse(cleaned);
-}
+
+  if (start === -1 || end === -1) {
+    throw new Error("No JSON found");
+  }
+
+  return text.slice(start, end + 1);
+};
+export const safeParse = async (raw: string) => {
+  try {
+    const cleaned = extractJSON(raw);
+    return JSON.parse(cleaned);
+  } catch {
+    throw new Error("PARSE_FAILED");
+  }
+};
+
+export const safeParseRawPrompt = async (raw: string) => {
+  try {
+    const cleaned = extractJSON(raw);
+    return JSON.parse(cleaned);
+  } catch {
+    const repairPrompt = `
+      Fix this JSON. Return ONLY valid JSON.
+
+      ${raw}
+      `;
+    const repaired = await llmExecutor(repairPrompt, "text/plain");
+
+    const cleaned = extractJSON(repaired);
+
+    return JSON.parse(cleaned);
+  }
+};

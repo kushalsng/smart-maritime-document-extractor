@@ -24,7 +24,7 @@ export const createJob = async (sessionId: string) => {
 export const updateJobStatus = async (
   jobId: string,
   status: JobStatus,
-  extra?: { extractionId?: string; error?: string }
+  extra?: { extractionId?: string; error?: string; retryable?: boolean }
 ) => {
   if(!isUUID(jobId)) {
     throw buildError(404, 'JOB_NOT_FOUND', 'Job ID does not exist')
