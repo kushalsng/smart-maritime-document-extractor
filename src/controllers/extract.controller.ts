@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { extractService } from '../services/extract.service';
 import { enqueueExtraction } from '../queue/publish';
 import fs from 'fs/promises';
+import { resolveSession } from '../util/session.util';
 
 
 export const extractController = async (req: Request, res: Response) => {
@@ -16,11 +17,13 @@ export const extractController = async (req: Request, res: Response) => {
       });
     }
 
+    const session = await resolveSession(req.body.sessionId);
+
     // SYNC MODE
     if (mode === 'sync') {
       const result = await extractService(
         file,
-        req.body.sessionId
+        session
       );
 
       if (result.deduplicated) {
@@ -36,7 +39,7 @@ export const extractController = async (req: Request, res: Response) => {
         filePath: file.path,
         mimeType: file.mimetype,
         fileName: file.originalname,
-        sessionId: req.body.sessionId,
+        session,
       });
 
       return res.status(202).json({

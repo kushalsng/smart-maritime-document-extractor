@@ -3,6 +3,7 @@ import { getSession } from '../repositories/session.repository';
 import { getExtractionsBySession } from '../repositories/extraction.repository';
 import { runValidationLLM } from '../services/validation.service';
 import { saveValidation } from '../repositories/validation.repository';
+import { normalizeScore, normalizeStatus } from '../util/misc';
 
 export const validateSessionController = async (
   req: Request,
@@ -31,8 +32,19 @@ export const validateSessionController = async (
 
   await saveValidation(sessionId, result);
 
-  return res.json({
+  const response = {
     sessionId,
-    ...result,
-  });
+    holderProfile: result?.holderProfile ?? {},
+    consistencyChecks: result?.consistencyChecks ?? [],
+    missingDocuments: result?.missingDocuments ?? [],
+    expiringDocuments: result?.expiringDocuments ?? [],
+    medicalFlags: result?.medicalFlags ?? [],
+    overallStatus: normalizeStatus(result?.overallStatus),
+    overallScore: normalizeScore(result?.overallScore),
+    summary: result?.summary ?? '',
+    recommendations: result?.recommendations ?? [],
+    validatedAt: new Date().toISOString(),
+  };
+
+  return res.json(response);
 };
