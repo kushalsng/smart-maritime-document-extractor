@@ -9,7 +9,7 @@ export const registerExtractWorker = async () => {
   await boss.work(
     queueName,
     async ([job]: { id: string; data: ExtractJobData }[]) => {
-      const { jobId, fileBase64, mimeType, sessionId, fileName } = job.data;
+      const { jobId, filePath, mimeType, sessionId, fileName } = job.data;
 
       try {
         await updateJobStatus(jobId, "PROCESSING");
@@ -31,7 +31,13 @@ export const registerExtractWorker = async () => {
           error: err.message,
         });
       } finally {
-        //TODO: delete temp file after processing.
+        if (filePath) {
+        try {
+          await fs.unlink(filePath);
+        } catch {
+          console.warn('Cleanup failed:', filePath);
+        }
+      }
       }
     },
   );

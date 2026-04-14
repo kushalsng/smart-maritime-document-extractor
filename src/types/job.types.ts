@@ -7,7 +7,7 @@ export type JobStatus =
 export interface ExtractJobData {
   jobId: string;
   sessionId: string;
-  fileBase64: string;
+  filePath: string;
   mimeType: string;
   fileName: string;
   fileHash: string;
