@@ -1,6 +1,7 @@
 import { pool } from "../config/db";
 import { v4 as uuidv4 } from "uuid";
 import { Extraction } from "../types/extraction.types";
+import { buildError, isUUID } from "../util/misc";
 
 export interface CreateExtractionInput {
   session_id: string;
@@ -30,6 +31,9 @@ export interface CreateExtractionInput {
 }
 
 export const createExtraction = async (data: CreateExtractionInput) => {
+  if (!isUUID(data.session_id)) {
+    throw buildError(404, "SESSION_NOT_FOUND", "Session ID does not exist");
+  }
   const id = uuidv4();
 
   const query = `
@@ -103,6 +107,9 @@ export const findExtractionByHashAndSession = async (
   fileHash: string,
   sessionId: string,
 ): Promise<Extraction | null> => {
+  if (!isUUID(sessionId)) {
+    throw buildError(404, "SESSION_NOT_FOUND", "Session ID does not exist");
+  }
   const query = `
     SELECT * FROM extractions
     WHERE file_hash = $1 AND session_id = $2
@@ -116,6 +123,9 @@ export const findExtractionByHashAndSession = async (
 export const getExtractionsBySession = async (
   sessionId: string,
 ): Promise<Extraction[]> => {
+  if (!isUUID(sessionId)) {
+    throw buildError(404, "SESSION_NOT_FOUND", "Session ID does not exist");
+  }
   const res = await pool.query(
     `SELECT * FROM extractions WHERE session_id = $1 ORDER BY created_at DESC`,
     [sessionId],
@@ -127,6 +137,9 @@ export const getExtractionsBySession = async (
 export const getExtractionById = async (
   id: string,
 ): Promise<Extraction | null> => {
+  if (!isUUID(id)) {
+    throw buildError(404, "EXTRACTION_NOT_FOUND", "Extraction ID does not exist");
+  }
   const result = await pool.query(
     `SELECT * FROM extractions WHERE id = $1 LIMIT 1`,
     [id],

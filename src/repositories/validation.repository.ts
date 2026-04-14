@@ -1,5 +1,6 @@
 import { pool } from '../config/db';
 import { v4 as uuidv4 } from 'uuid';
+import { Validation } from '../types/extraction.types';
 
 export const saveValidation = async (
   sessionId: string,
@@ -18,4 +19,21 @@ export const saveValidation = async (
   );
 
   return validation.rows[0];
+};
+
+export const getLatestValidation = async (
+  sessionId: string
+): Promise<Validation | null> => {
+  const result = await pool.query(
+    `
+    SELECT *
+    FROM validations
+    WHERE session_id = $1
+    ORDER BY created_at DESC
+    LIMIT 1
+  `,
+    [sessionId]
+  );
+
+  return result.rows[0] || null;
 };

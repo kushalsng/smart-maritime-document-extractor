@@ -1,15 +1,16 @@
-import fs from "fs";
-import crypto from "crypto";
-
 import { findExtractionByHashAndSession } from "../repositories/extraction.repository";
 import { createExtraction } from "../repositories/extraction.repository";
-import { createSession, getSession } from "../repositories/session.repository";
 import { llmExecutor } from "./llm.service";
 import { safeParse } from "../util/prompt-builder";
+import { readFileAndHash } from "../util/file.util";
+import { mapLLMToExtraction, mapLLMToResponse } from "../util/extract.util";
+import { buildError } from "../util/misc";
+import { updateJobStatus } from "../repositories/job.repository";
+import { Session } from "../types/extraction.types";
 
 export const extractService = async (
   file: Express.Multer.File,
-  sessionId?: string,
+  session: Session,
 ) => {
   if (!file) throw buildError(400, "NO_FILE", "No file uploaded");
 
@@ -23,20 +24,7 @@ export const extractService = async (
     throw buildError(413, "FILE_TOO_LARGE", "File exceeds 10MB");
   }
 
-  let session;
-
-  if (sessionId) {
-    session = await getSession(sessionId);
-    if (!session) {
-      throw buildError(404, "SESSION_NOT_FOUND", "Session not found");
-    }
-  } else {
-    session = await createSession();
-  }
-
-  const buffer = fs.readFileSync(file.path);
-
-  const hash = crypto.createHash("sha256").update(buffer).digest("hex");
+  const { base64, hash } = readFileAndHash(file.path);
 
   const existing = await findExtractionByHashAndSession(hash, session.id);
 
@@ -44,12 +32,10 @@ export const extractService = async (
     const parsed = JSON.parse(existing.raw_llm_response);
     return {
       deduplicated: true,
-      extraction: mapLLMToResponse(parsed?.data, existing),
+      extraction: mapLLMToResponse(parsed, existing),
       sessionId: session.id,
     };
   }
-
-  const base64 = buffer.toString("base64");
 
   let parsed;
   let raw;
@@ -80,100 +66,77 @@ export const extractService = async (
     file_hash: hash,
     raw_llm_response: JSON.stringify(parsed),
     status: "COMPLETE",
-    ...mapLLMToDB(parsed?.data),
+    ...mapLLMToExtraction(parsed),
   });
 
   return {
-    extraction: mapLLMToResponse(parsed?.data, extraction),
+    extraction: mapLLMToResponse(parsed, extraction),
     sessionId: session.id,
     deduplicated: false,
   };
 };
 
-const buildError = (
-  status: number,
-  code: string,
-  message: string,
-  extractionId?: string,
-) => {
-  const err: any = new Error(message);
-  err.status = status;
-  err.code = code;
-  err.extractionId = extractionId;
-  return err;
-};
+export const processExtractionJob = async ({
+  jobId,
+  filePath,
+  mimeType,
+  session,
+  fileName,
+}: {
+  jobId: string;
+  filePath: string;
+  mimeType: string;
+  session: Session;
+  fileName: string;
+}) => {
+  try {
+    const { base64, hash } = readFileAndHash(filePath);
 
-const mapLLMToDB = (parsed: any) => {
-  return {
-    document_type: parsed?.detection?.documentType || null,
-    applicable_role: parsed?.detection?.applicableRole || null,
+    const existing = await findExtractionByHashAndSession(hash, session.id);
 
-    holder_name: parsed?.holder?.fullName || null,
-    date_of_birth: parsed?.holder?.dateOfBirth ?? null,
-    sirb_number: parsed?.holder?.sirbNumber ?? null,
-    passport_number: parsed?.holder?.passportNumber ?? null,
+    if (existing) {
+      await updateJobStatus(jobId, "COMPLETE", {
+        extractionId: existing.id,
+      });
+      return;
+    }
 
-    confidence: parsed?.detection?.confidence || null,
+    let parsed;
+    let raw;
 
-    fields_json: parsed?.fields || [],
+    try {
+      raw = await llmExecutor(base64, mimeType);
+      parsed = await safeParse(raw);
+    } catch (err: any) {
+      const failed = await createExtraction({
+        session_id: session.id,
+        file_name: fileName,
+        file_hash: hash,
+        raw_llm_response: raw || "",
+        status: "FAILED",
+      });
 
-    validity_json: parsed?.validity || {},
+      await updateJobStatus(jobId, "FAILED", {
+        extractionId: failed.id,
+        error: err?.message,
+      });
+    }
 
-    medical_data_json: parsed?.medicalData || {},
+    const extraction = await createExtraction({
+      session_id: session.id,
+      file_name: fileName,
+      file_hash: hash,
+      raw_llm_response: JSON.stringify(parsed),
+      status: "COMPLETE",
+      ...mapLLMToExtraction(parsed),
+    });
 
-    flags_json: parsed?.flags || [],
-
-    is_expired: parsed?.validity?.isExpired || parsed?.isExpired || false,
-
-    summary: parsed?.summary || null,
-  };
-};
-
-const mapLLMToResponse = (parsed: any, extraction: any) => {
-  return {
-    id: extraction.id,
-    sessionId: extraction.session_id,
-    fileName: extraction.file_name,
-
-    documentType: parsed?.detection?.documentType || null,
-    documentName: parsed?.detection?.documentName || null,
-    applicableRole: parsed?.detection?.applicableRole || null,
-    category: parsed?.detection?.category || null,
-    confidence: parsed?.detection?.confidence || null,
-
-    holderName: parsed?.holder?.fullName || null,
-    dateOfBirth: parsed?.holder?.dateOfBirth || null,
-    sirbNumber: parsed?.holder?.sirbNumber || null,
-    passportNumber: parsed?.holder?.passportNumber || null,
-
-    fields: parsed?.fields || [],
-
-    validity: {
-      dateOfIssue: parsed?.validity?.dateOfIssue || null,
-      dateOfExpiry: parsed?.validity?.dateOfExpiry || null,
-      isExpired: parsed?.validity?.isExpired || false,
-      daysUntilExpiry: parsed?.validity?.daysUntilExpiry || null,
-      revalidationRequired: parsed?.validity?.revalidationRequired || false,
-    },
-
-    compliance: parsed?.compliance || {},
-
-    medicalData: {
-      fitnessResult: parsed?.medicalData?.fitnessResult || null,
-      drugTestResult: parsed?.medicalData?.drugTestResult || null,
-      restrictions: parsed?.medicalData?.restrictions || null,
-      specialNotes: parsed?.medicalData?.specialNotes || null,
-      expiryDate: parsed?.medicalData?.expiryDate || null,
-    },
-
-    flags: parsed?.flags || [],
-
-    isExpired: parsed?.validity?.isExpired || parsed?.isExpired || false,
-
-    processingTimeMs: extraction.processing_time_ms,
-
-    summary: parsed?.summary || null,
-
-    createdAt: extraction.created_at,
-  };
+    await updateJobStatus(jobId, "COMPLETE", {
+      extractionId: extraction.id,
+    });
+  } catch (err: any) {
+    await updateJobStatus(jobId, "FAILED", {
+      error: err?.message,
+    });
+  }
 };

@@ -6,6 +6,7 @@ import { extractController } from '../controllers/extract.controller';
 import { getJobController } from '../controllers/job.controller';
 import { getSessionController } from '../controllers/session.controller';
 import { validateSessionController } from '../controllers/validation.controller';
+import { getSessionReportController } from '../controllers/report.controller';
 
 const router = express.Router();
 const tmpDir = path.join(process.cwd(), 'tmp');
@@ -27,5 +28,6 @@ router.post('/extract', upload.single('document'), extractController);
 router.get('/jobs/:jobId', getJobController);
 router.get('/sessions/:sessionId', getSessionController);
 router.post('/sessions/:sessionId/validate', validateSessionController);
+router.get('/sessions/:sessionId/report', getSessionReportController);
 
 export default router;

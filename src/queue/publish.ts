@@ -1,21 +1,20 @@
-import { v4 as uuidv4 } from 'uuid';
 import { boss, queueName } from './pgBoss';
 import { createJob } from '../repositories/job.repository';
+import { Session } from '../types/extraction.types';
 
 export const enqueueExtraction = async (data: {
-  sessionId: string;
+  session: Session;
   filePath: string;
   mimeType: string;
   fileName: string;
 }) => {
-  const jobId = uuidv4();
 
-  await createJob(data.sessionId);
+  const job = await createJob(data.session.id);
 
   await boss.send(
     queueName,
     {
-      jobId,
+      jobId: job.id,
       ...data,
     },
     {
@@ -23,9 +22,5 @@ export const enqueueExtraction = async (data: {
     }
   );
 
-  return {
-    id: jobId,
-    sessionId: data.sessionId,
-    status: 'QUEUED',
-  };
+  return job;
 };

@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
-import { getJob } from "../repositories/job.repository";
+import { getJob, getQueuePosition } from "../repositories/job.repository";
 import { getExtractionById } from "../repositories/extraction.repository";
+import { mapLLMToResponse } from "../util/extract.util";
+import { isRetryable } from "../util/misc";
 
 export const getJobController = async (req: Request, res: Response) => {
   const { jobId } = req.params;
@@ -14,14 +16,22 @@ export const getJobController = async (req: Request, res: Response) => {
     });
   }
 
-  // PROCESSING / QUEUED
+  // QUEUED / PROCESSING
   if (job.status === "QUEUED" || job.status === "PROCESSING") {
-    return res.json({
+    const queuePosition = await getQueuePosition(job.id);
+
+    // simple estimation
+    const avgProcessingMs = 3000;
+
+    return res.status(200).json({
       jobId: job.id,
       status: job.status,
-      queuePosition: null,
-      startedAt: job.started_at,
-      estimatedCompleteMs: null,
+      queuePosition,
+      startedAt: job.started_at ? new Date(job.started_at).toISOString() : null,
+      estimatedCompleteMs:
+        queuePosition !== null
+          ? queuePosition * avgProcessingMs
+          : avgProcessingMs,
     });
   }
 
@@ -36,24 +46,29 @@ export const getJobController = async (req: Request, res: Response) => {
       });
     }
 
-    return res.json({
+    const parsed = JSON.parse(extraction.raw_llm_response);
+
+    const result = mapLLMToResponse(parsed, extraction);
+
+    return res.status(200).json({
       jobId: job.id,
       status: "COMPLETE",
       extractionId: job.extraction_id,
-      result: extraction,
-      completedAt: job.completed_at,
+      result,
+      completedAt: new Date(job.completed_at!).toISOString(),
     });
   }
 
-  // FAILED
   if (job.status === "FAILED") {
-    return res.json({
+    return res.status(200).json({
       jobId: job.id,
       status: "FAILED",
       error: job.error_code || "INTERNAL_ERROR",
-      message: job.error_message,
-      failedAt: job.completed_at,
-      retryable: true,
+      message: job.error_message || "Job failed due to an unexpected error",
+      failedAt: job.completed_at
+        ? new Date(job.completed_at).toISOString()
+        : null,
+      retryable: isRetryable(job.error_code),
     });
   }
 };
