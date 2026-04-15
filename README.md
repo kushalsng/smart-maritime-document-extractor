@@ -41,7 +41,7 @@ docker-compose up
 ### 3. Run the server
 
 ```bash
-npm run dev
+npm run start
 ```
 
 ---
