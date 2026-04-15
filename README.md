@@ -1,6 +1,7 @@
 # 🚢 Smart Maritime Document Extractor
 
-A backend service to extract, validate, and analyze maritime documents using LLMs.
+#### A backend service to extract, validate, and analyze maritime documents using LLMs.
+It supports processing documents such as certificates, medical records, and identification files by converting unstructured inputs (PDFs, images, text) into structured, machine-readable data. The system enables both real-time (sync) and scalable background (async) processing, ensures reliability through JSON repair and retry mechanisms, and performs cross-document validation to detect inconsistencies or compliance issues. Designed with modular LLM integration, the service allows seamless switching between providers while maintaining consistent output formats.
 
 ---
 
@@ -22,7 +23,7 @@ DB_PORT=5433
 DB_HOST=localhost
 
 
-WEBHOOK_SECRET='webhook-secret-here'
+WEBHOOK_SECRET='webhook-secret-here'  #optional
 ```
 
 ### 1. Install dependencies
