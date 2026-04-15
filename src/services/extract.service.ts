@@ -6,7 +6,7 @@ import { readFileAndHash } from "../util/file.util";
 import { mapLLMToExtraction, mapLLMToResponse } from "../util/extract.util";
 import { buildError } from "../util/misc";
 import { getJob, updateJobStatus } from "../repositories/job.repository";
-import { ExtractionResponse, Session } from "../types/extraction.types";
+import { ExtractionResponse, MimeType, Session } from "../types/extraction.types";
 import { LLMTimeoutError } from "../util/errors";
 import { sendWebhook } from "../util/webhook.util";
 
@@ -47,7 +47,7 @@ export const extractService = async (
   let raw;
 
   try {
-    raw = await llmExecutor(base64, file.mimetype);
+    raw = await llmExecutor(base64, file.mimetype as MimeType);
     parsed = await safeParse(raw);
   } catch (err) {
     const failed = await createExtraction({
@@ -112,7 +112,7 @@ export const processExtractionJob = async ({
     let raw;
 
     try {
-      raw = await llmExecutor(base64, mimeType);
+      raw = await llmExecutor(base64, mimeType as MimeType);
       parsed = await safeParse(raw);
     } catch (err: any) {
       const failed = await createExtraction({

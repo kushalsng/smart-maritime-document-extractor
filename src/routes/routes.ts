@@ -8,9 +8,11 @@ import { getSessionController } from '../controllers/session.controller';
 import { validateSessionController } from '../controllers/validation.controller';
 import { getSessionReportController } from '../controllers/report.controller';
 import { rateLimiter } from '../middleware/rateLimiter';
+import { v4 as uuidv4 } from "uuid";
+
 
 const router = express.Router();
-const tmpDir = path.join(process.cwd(), 'tmp');
+const tmpDir = path.join(process.cwd(), `tmp/${uuidv4()}`);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
