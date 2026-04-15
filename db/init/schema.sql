@@ -50,7 +50,8 @@ CREATE TABLE jobs (
 
   queued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   started_at TIMESTAMP,
-  completed_at TIMESTAMP
+  completed_at TIMESTAMP,
+  webhook_url TEXT
 );
 
 

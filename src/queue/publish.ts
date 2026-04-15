@@ -7,6 +7,7 @@ export const enqueueExtraction = async (data: {
   filePath: string;
   mimeType: string;
   fileName: string;
+  webhookUrl?: string;
 }) => {
 
   const job = await createJob(data.session.id);

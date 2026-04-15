@@ -3,6 +3,7 @@ import { getJob, getQueuePosition } from "../repositories/job.repository";
 import { getExtractionById } from "../repositories/extraction.repository";
 import { mapLLMToResponse } from "../util/extract.util";
 import { isRetryable } from "../util/misc";
+import { boss } from "../queue/pgBoss";
 
 export const getJobController = async (req: Request, res: Response) => {
   const { jobId } = req.params;
@@ -71,4 +72,38 @@ export const getJobController = async (req: Request, res: Response) => {
       retryable: isRetryable(job.error_code),
     });
   }
+};
+
+export const retryJobController = async (req: Request, res: Response) => {
+  const { jobId } = req.params;
+
+  const job = await getJob(jobId);
+
+  if (!job) {
+    return res.status(404).json({ error: "JOB_NOT_FOUND" });
+  }
+
+  if (job.status !== "FAILED") {
+    return res.status(400).json({
+      error: "INVALID_STATE",
+      message: "Only FAILED jobs can be retried",
+    });
+  }
+
+  await boss.send(process.env.QUEUE_NAME!, {
+    jobId,
+    filePath: job.file_path,
+    mimeType: job.mime_type,
+    sessionId: job.session_id,
+    fileName: job.file_name,
+    webhookUrl: job.webhook_url,
+  });
+
+  return res.json({
+    jobId: job.id,
+    sessionId: job.sessionId,
+    status: "QUEUED",
+    pollUrl: `/api/jobs/${job.id}`,
+    estimatedWaitMs: 6000,
+  });
 };

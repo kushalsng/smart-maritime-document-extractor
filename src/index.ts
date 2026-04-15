@@ -1,5 +1,5 @@
 import express from "express";
-import extractRoutes from "./routes/extract.routes";
+import extractRoutes from "./routes/routes";
 
 import { connectDB } from "./config/db";
 import { testQuery } from "./util/db-helper";

@@ -33,6 +33,7 @@ export interface Extraction {
   processing_time_ms: number | null;
 
   status: string;
+  prompt_version: string | null
 
   created_at: Date;
 }
@@ -52,6 +53,8 @@ export interface Job {
 
   error_code: string | null;
   error_message: string | null;
+
+  webhook_url: string | null;
 
   queued_at: Date;
   started_at: Date | null;
@@ -74,4 +77,5 @@ export interface ExtractJobData {
   mimeType: string;
   fileName: string;
   fileHash: string;
+  webhookUrl?: string;
 }

@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { JobStatus } from '../types/extraction.types';
 import { buildError, isUUID } from '../util/misc';
 
-export const createJob = async (sessionId: string) => {
+export const createJob = async (sessionId: string, webhookUrl?: string) => {
   if(!isUUID(sessionId)) {
     throw buildError(404, 'SESSION_NOT_FOUND', 'Session ID does not exist')
   }
@@ -11,11 +11,11 @@ export const createJob = async (sessionId: string) => {
 
   const result = await pool.query(
     `
-    INSERT INTO jobs (id, session_id, status)
-    VALUES ($1, $2, 'QUEUED')
+    INSERT INTO jobs (id, session_id, status, webhook_url)
+    VALUES ($1, $2, 'QUEUED', $3)
     RETURNING *;
   `,
-    [id, sessionId]
+    [id, sessionId, webhookUrl ?? null]
   );
 
   return result.rows[0];

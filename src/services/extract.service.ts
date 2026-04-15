@@ -5,9 +5,10 @@ import { safeParse } from "../util/prompt-builder";
 import { readFileAndHash } from "../util/file.util";
 import { mapLLMToExtraction, mapLLMToResponse } from "../util/extract.util";
 import { buildError } from "../util/misc";
-import { updateJobStatus } from "../repositories/job.repository";
+import { getJob, updateJobStatus } from "../repositories/job.repository";
 import { Session } from "../types/extraction.types";
 import { LLMTimeoutError } from "../util/errors";
+import { sendWebhook } from "../util/webhook.util";
 
 export const extractService = async (
   file: Express.Multer.File,
@@ -90,6 +91,7 @@ export const processExtractionJob = async ({
   session: Session;
   fileName: string;
 }) => {
+  const jobRecord = await getJob(jobId);
   try {
     const { base64, hash } = readFileAndHash(filePath);
 
@@ -135,11 +137,31 @@ export const processExtractionJob = async ({
     await updateJobStatus(jobId, "COMPLETE", {
       extractionId: extraction.id,
     });
+
+    if (jobRecord?.webhook_url) {
+      try {
+        await sendWebhook(jobRecord.webhook_url, {
+          jobId,
+          status: "COMPLETE",
+          extractionId: extraction.id,
+          sessionId: session.id,
+        });
+      } catch (err: any) {
+        console.warn("Webhook failed:", err.message);
+      }
+    }
   } catch (err: any) {
     const isTimeout = err instanceof LLMTimeoutError;
-    await updateJobStatus(jobId, 'FAILED', {
-    error: err.message,
-    retryable: isTimeout,
-  });
+    await updateJobStatus(jobId, "FAILED", {
+      error: err.message,
+      retryable: isTimeout,
+    });
+    if (jobRecord?.webhook_url) {
+      await sendWebhook(jobRecord.webhook_url, {
+        jobId,
+        status: "FAILED",
+        error: err.message,
+      });
+    }
   }
 };

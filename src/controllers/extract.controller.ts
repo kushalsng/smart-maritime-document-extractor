@@ -8,6 +8,7 @@ import { resolveSession } from '../util/session.util';
 export const extractController = async (req: Request, res: Response) => {
   const file = req.file;
   const mode = (req.query.mode as string) || 'sync';
+  const webhookUrl = req.body.webhookUrl;
   try {
 
     if (!file) {
@@ -40,6 +41,7 @@ export const extractController = async (req: Request, res: Response) => {
         mimeType: file.mimetype,
         fileName: file.originalname,
         session,
+        webhookUrl
       });
 
       return res.status(202).json({
