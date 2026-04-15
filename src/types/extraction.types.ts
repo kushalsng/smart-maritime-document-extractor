@@ -91,7 +91,7 @@ export interface Validation {
   id: string;
   session_id: string;
 
-  result_json: Record<string, ValidationResult>;
+  result_json: ValidationResult;
 
   created_at: Date;
 }

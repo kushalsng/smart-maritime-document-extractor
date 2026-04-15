@@ -1,4 +1,4 @@
-import { Extraction, ValidationResult } from "../types/extraction.types";
+import { Extraction, Validation } from "../types/extraction.types";
 import { groupBy } from "../util/misc";
 
 export const buildReport = ({
@@ -8,7 +8,7 @@ export const buildReport = ({
 }: {
   sessionId: string;
   extractions: Extraction[],
-  validation: ValidationResult
+  validation: Validation | null
 }) => {
   const primary = extractions[0];
 
@@ -38,18 +38,20 @@ export const buildReport = ({
     }),
   };
 
+  const validationResult = validation?.result_json
+
   const compliance = {
-    missingDocuments: validation?.missingDocuments ?? [],
-    consistencyChecks: validation?.consistencyChecks ?? [],
-    medicalFlags: validation?.medicalFlags ?? [],
+    missingDocuments: validationResult?.missingDocuments ?? [],
+    consistencyChecks: validationResult?.consistencyChecks ?? [],
+    medicalFlags: validationResult?.medicalFlags ?? [],
   };
 
   const riskSummary = {
-    highRiskFlags: (validation?.medicalFlags ?? []).filter(
+    highRiskFlags: (validationResult?.medicalFlags ?? []).filter(
       (f) => f.severity === 'HIGH'
     ),
 
-    missingCriticalDocs: (validation?.missingDocuments ?? []).filter(
+    missingCriticalDocs: (validationResult?.missingDocuments ?? []).filter(
       (d) => d.importance === 'CRITICAL'
     ),
 
@@ -57,10 +59,10 @@ export const buildReport = ({
   };
 
   const decision = {
-    status: validation?.overallStatus ?? 'CONDITIONAL',
-    score: validation?.overallScore ?? 0,
-    summary: validation?.summary ?? '',
-    recommendations: validation?.recommendations ?? [],
+    status: validationResult?.overallStatus ?? 'CONDITIONAL',
+    score: validationResult?.overallScore ?? 0,
+    summary: validationResult?.summary ?? '',
+    recommendations: validationResult?.recommendations ?? [],
   };
 
   return {

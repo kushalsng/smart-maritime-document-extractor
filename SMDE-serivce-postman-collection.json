@@ -1,0 +1,210 @@
+{
+  "info": {
+    "_postman_id": "8d44547b-b5c4-4811-9e78-57d83afc46b7",
+    "name": "SMDE API Collection",
+    "description": "Smart Maritime Document Extractor APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "14503514",
+    "_collection_link": "https://go.postman.co/collection/14503514-8d44547b-b5c4-4811-9e78-57d83afc46b7?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Extract (Sync)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "document",
+              "type": "file",
+              "value": ""
+            },
+            {
+              "key": "sessionId",
+              "type": "text",
+              "value": ""
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/extract?mode=sync",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "extract"
+          ],
+          "query": [
+            {
+              "key": "mode",
+              "value": "sync"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Extract (Async)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "let res = pm.response.json();",
+              "if (res.jobId) {",
+              "  pm.collectionVariables.set('jobId', res.jobId);",
+              "}",
+              "if (res.sessionId) {",
+              "  pm.collectionVariables.set('sessionId', res.sessionId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "document",
+              "type": "file",
+              "value": ""
+            },
+            {
+              "key": "sessionId",
+              "type": "text",
+              "value": ""
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/extract?mode=async",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "extract"
+          ],
+          "query": [
+            {
+              "key": "mode",
+              "value": "async"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Job Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/jobs/{{jobId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "jobs",
+            "{{jobId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Session",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/sessions/{{sessionId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sessions",
+            "{{sessionId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Validate Session",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/sessions/{{sessionId}}/validate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sessions",
+            "{{sessionId}}",
+            "validate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Report session",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/sessions/{{sessionId}}/report",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sessions",
+            "{{sessionId}}",
+            "report"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "jobId",
+      "value": ""
+    },
+    {
+      "key": "sessionId",
+      "value": ""
+    }
+  ]
+}
