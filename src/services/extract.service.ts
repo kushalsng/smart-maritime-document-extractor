@@ -6,14 +6,18 @@ import { readFileAndHash } from "../util/file.util";
 import { mapLLMToExtraction, mapLLMToResponse } from "../util/extract.util";
 import { buildError } from "../util/misc";
 import { getJob, updateJobStatus } from "../repositories/job.repository";
-import { Session } from "../types/extraction.types";
+import { ExtractionResponse, Session } from "../types/extraction.types";
 import { LLMTimeoutError } from "../util/errors";
 import { sendWebhook } from "../util/webhook.util";
 
 export const extractService = async (
   file: Express.Multer.File,
   session: Session,
-) => {
+): Promise<{
+  deduplicated: boolean;
+  sessionId: string;
+  extraction: ExtractionResponse
+}> => {
   if (!file) throw buildError(400, "NO_FILE", "No file uploaded");
 
   const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];

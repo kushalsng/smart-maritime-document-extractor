@@ -23,6 +23,7 @@ export class OllamaProvider implements LLMProvider {
       throw new Error(`Ollama error: ${text}`);
     }
 
+    // type is any because res.json() returns unknown value
     const data: any = await res.json();
 
     return data.response; // raw text (may include JSON + noise)
@@ -41,6 +42,7 @@ export class OllamaProvider implements LLMProvider {
       }),
     });
 
+    // type is any because res.json() returns unknown value
     const data: any = await res.json();
     return data.response;
   }

@@ -3,34 +3,8 @@ import { v4 as uuidv4 } from "uuid";
 import { Extraction } from "../types/extraction.types";
 import { buildError, isUUID } from "../util/misc";
 
-export interface CreateExtractionInput {
-  session_id: string;
-  file_name: string;
-  file_hash: string;
-  raw_llm_response: string;
-  status?: string;
 
-  document_type?: string | null;
-  applicable_role?: string | null;
-  holder_name?: string | null;
-  date_of_birth?: string | null;
-  sirb_number?: string | null;
-  passport_number?: string | null;
-
-  confidence?: string | null;
-
-  fields_json?: Record<string, any>[]; // can refine later
-  validity_json?: Record<string, any>;
-  medical_data_json?: Record<string, any>;
-  flags_json?: Record<string, any>[];
-
-  is_expired?: boolean;
-  summary?: string;
-
-  processing_time_ms?: number;
-}
-
-export const createExtraction = async (data: CreateExtractionInput) => {
+export const createExtraction = async (data: Partial<Extraction>) => {
   if (!isUUID(data.session_id)) {
     throw buildError(404, "SESSION_NOT_FOUND", "Session ID does not exist");
   }

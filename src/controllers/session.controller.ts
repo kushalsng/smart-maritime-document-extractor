@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { getSession } from '../repositories/session.repository';
 import { getExtractionsBySession } from '../repositories/extraction.repository';
+import { Flag } from '../types/extraction.types';
 
 export const getSessionController = async (req: Request, res: Response) => {
   const { sessionId } = req.params;
@@ -26,7 +27,7 @@ export const getSessionController = async (req: Request, res: Response) => {
     isExpired: e.is_expired,
     flagCount: e.flags_json?.length || 0,
     criticalFlagCount:
-      e.flags_json?.filter((f: any) => f.severity === 'CRITICAL').length || 0,
+      e.flags_json?.filter((f: Flag) => f.severity === 'CRITICAL').length || 0,
     createdAt: e.created_at,
   }));
 

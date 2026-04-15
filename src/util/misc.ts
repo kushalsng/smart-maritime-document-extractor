@@ -1,3 +1,4 @@
+import { Status } from "../types/extraction.types";
 import { LLMTimeoutError } from "./errors";
 
 export const timeout = (ms: number) =>
@@ -35,10 +36,11 @@ export const isRetryable = (errorCode?: string | null): boolean => {
   return !nonRetryableErrors.has(errorCode);
 }
 
-export const normalizeStatus = (status?: string): 'APPROVED' | 'CONDITIONAL' | 'REJECTED' => {
+
+export const normalizeStatus = (status?: string): Status  => {
   const allowed = new Set(['APPROVED', 'CONDITIONAL', 'REJECTED']);
 
-  if (status && allowed.has(status)) return status as any;
+  if (status && allowed.has(status)) return status as Status;
 
   return 'CONDITIONAL'; // safe fallback
 };

@@ -4,6 +4,7 @@ import { getExtractionsBySession } from '../repositories/extraction.repository';
 import { runValidationLLM } from '../services/validation.service';
 import { saveValidation } from '../repositories/validation.repository';
 import { normalizeScore, normalizeStatus } from '../util/misc';
+import { ValidationResult } from '../types/extraction.types';
 
 export const validateSessionController = async (
   req: Request,
@@ -46,5 +47,5 @@ export const validateSessionController = async (
     validatedAt: new Date().toISOString(),
   };
 
-  return res.json(response);
+  return res.json(response as ValidationResult & { sessionId: string, validatedAt: string});
 };

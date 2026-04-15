@@ -1,4 +1,6 @@
-export const mapLLMToExtraction = (response: any) => {
+import { Extraction, ExtractionResponse } from "../types/extraction.types";
+
+export const mapLLMToExtraction = (response: any): Partial<Extraction> => {
     const parsed = response?.data ? response.data : response;
   return {
     document_type: parsed?.detection?.documentType || null,
@@ -25,7 +27,7 @@ export const mapLLMToExtraction = (response: any) => {
   };
 };
 
-export const mapLLMToResponse = (response: any, extraction: any) => {
+export const mapLLMToResponse = (response: any, extraction: any): ExtractionResponse => {
     const parsed = response?.data ? response.data : response;
   return {
     id: extraction.id,

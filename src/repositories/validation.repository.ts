@@ -1,10 +1,10 @@
 import { pool } from '../config/db';
 import { v4 as uuidv4 } from 'uuid';
-import { Validation } from '../types/extraction.types';
+import { Validation, ValidationResult } from '../types/extraction.types';
 
 export const saveValidation = async (
   sessionId: string,
-  result: any
+  result: ValidationResult
 ) => {
   const id = uuidv4();
 

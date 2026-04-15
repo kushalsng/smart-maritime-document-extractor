@@ -1,10 +1,15 @@
+import { Extraction, ValidationResult } from "../types/extraction.types";
 import { groupBy } from "../util/misc";
 
 export const buildReport = ({
   sessionId,
   extractions,
   validation,
-}: any) => {
+}: {
+  sessionId: string;
+  extractions: Extraction[],
+  validation: ValidationResult
+}) => {
   const primary = extractions[0];
 
   const candidate = {
@@ -19,9 +24,9 @@ export const buildReport = ({
 
     byType: groupBy(extractions, 'document_type'),
 
-    expired: extractions.filter((e: any) => e.is_expired),
+    expired: extractions.filter((e) => e.is_expired),
 
-    expiringSoon: extractions.filter((e: any) => {
+    expiringSoon: extractions.filter((e) => {
       const expiry = e.validity_json?.dateOfExpiry;
       if (!expiry) return false;
 
@@ -41,14 +46,14 @@ export const buildReport = ({
 
   const riskSummary = {
     highRiskFlags: (validation?.medicalFlags ?? []).filter(
-      (f: any) => f.severity === 'HIGH'
+      (f) => f.severity === 'HIGH'
     ),
 
     missingCriticalDocs: (validation?.missingDocuments ?? []).filter(
-      (d: any) => d.importance === 'CRITICAL'
+      (d) => d.importance === 'CRITICAL'
     ),
 
-    expiredDocs: documents.expired.map((d: any) => d.document_type),
+    expiredDocs: documents.expired.map((d) => d.document_type),
   };
 
   const decision = {
