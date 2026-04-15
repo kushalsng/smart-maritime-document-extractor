@@ -1,10 +1,30 @@
 # 🚢 Smart Maritime Document Extractor
 
-A backend service to extract, validate, and analyze maritime documents using LLMs.
+#### A backend service to extract, validate, and analyze maritime documents using LLMs.
+It supports processing documents such as certificates, medical records, and identification files by converting unstructured inputs (PDFs, images, text) into structured, machine-readable data. The system enables both real-time (sync) and scalable background (async) processing, ensures reliability through JSON repair and retry mechanisms, and performs cross-document validation to detect inconsistencies or compliance issues. Designed with modular LLM integration, the service allows seamless switching between providers while maintaining consistent output formats.
 
 ---
 
 ## ⚡ Setup in 3 Commands (Under 5 Minutes)
+
+### 0. Create a `.env` file:
+
+```env
+PORT=3000
+
+LLM_PROVIDER=gemini # you can set the provider dynamically (available LLM providers mentioned below 👇)
+LLM_MODEL=gemini-2.0-flash # set LLM model
+LLM_API_KEY=api-key-here  # set your LLM's API key here (if aplicable)
+
+DB_USER=postgres
+DB_PASSWORD=password
+DB_NAME=smde-service
+DB_PORT=5433
+DB_HOST=localhost
+
+
+WEBHOOK_SECRET='webhook-secret-here'  #optional
+```
 
 ### 1. Install dependencies
 
@@ -39,26 +59,19 @@ Response:
 ```
 
 ---
-## ⚙️ Environment Variables
 
-Create a `.env` file:
+## 🧠 LLM Providers
 
-```env
-PORT=3000
+Provider is configurable via env:
 
-LLM_PROVIDER=gemini
-LLM_MODEL=gemini-2.0-flash
-LLM_API_KEY=api-key-here
-
-DB_USER=postgres
-DB_PASSWORD=password
-DB_NAME=smde-service
-DB_PORT=5433
-DB_HOST=localhost
-
-
-WEBHOOK_SECRET='webhook-secret-here'
-```
+| Provider           | Model                        |
+| ------------------ | ---------------------------- |
+| Google Gemini      | gemini-2.0-flash             |
+| Groq               | llama-3.2-11b-vision-preview |
+| Mistral            | pixtral-12b-2409             |
+| Ollama             | llava (local)                |
+| Anthropic Claude   | claude-haiku-4-5-20251001    |
+| OpenAI             | gpt-4o-mini                  |
 
 ---
 
@@ -114,21 +127,6 @@ GET /api/sessions/:sessionId/report
 
 ---
 
-## 🧠 LLM Providers
-
-Provider is configurable via env:
-
-| Provider           | Model                        |
-| ------------------ | ---------------------------- |
-| Google Gemini      | gemini-2.0-flash             |
-| Groq               | llama-3.2-11b-vision-preview |
-| Mistral            | pixtral-12b-2409             |
-| Ollama             | llava (local)                |
-| Anthropic Claude   | claude-haiku-4-5-20251001    |
-| OpenAI             | gpt-4o-mini                  |
-
----
-
 ## 🧪 Testing
 
 Run tests:
@@ -141,23 +139,6 @@ Includes:
 
 * ✅ JSON repair unit tests
 
----
-
-## 🗂️ Project Structure
-
-```text
-src/
-  config/
-  controllers/
-  middleware/
-  providers/
-  services/
-  repositories/
-  queue/
-  util/
-  types/
-  tests/
-```
 
 ---
 
@@ -175,6 +156,5 @@ src/
 * Async processing via pg-boss queue
 * Idempotent extraction using file hash
 * LLM abstraction for provider swapping
-* Prompt versioning via SHA hash
 * Robust JSON parsing with retry + repair
 
