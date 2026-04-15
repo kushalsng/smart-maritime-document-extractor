@@ -1,6 +1,6 @@
 # Architecture Decision Record (ADR)
 
-## Question 1 — Sync vs Async
+## Question 1: Sync vs Async
 
 **Which mode should be the default and why?**
 In a production environment, `?mode=async` must be the default for the following reasons:
@@ -15,7 +15,7 @@ I would force async regardless of the `?mode` parameter under these conditions:
 
 ---
 
-## Question 2 — Queue Choice
+## Question 2: Queue Choice
 
 **What queue mechanism did you use and why?**
 The service uses **pg-boss**, a job queue built on top of PostgreSQL.
@@ -34,7 +34,7 @@ At 500 extractions/minute, the database could experience severe IO and lock cont
 
 ---
 
-## Question 3 — LLM Provider Abstraction
+## Question 3: LLM Provider Abstraction
 
 **Did you build a provider interface or implement against one directly?**
 Yes, a strict provider abstraction was built via the `LLMProvider` interface.
@@ -51,7 +51,7 @@ Abstracting the provider mitigates the massive risk of vendor lock-in, providing
 
 ---
 
-## Question 4 — Schema Design
+## Question 4: Schema Design
 
 **What are the risks of using JSONB/TEXT columns at scale?**
 The schema relies on `JSONB` columns to store dynamic extracted data, introducing several risks at scale:
@@ -67,7 +67,7 @@ To safely support queries like "all sessions where any document has an expired C
 
 ---
 
-## Question 5 — What You Skipped
+## Question 5: What You Skipped
 
 **List at least three things deliberately not implemented:**
 
