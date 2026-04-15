@@ -7,7 +7,7 @@ import { resolveSession } from '../util/session.util';
 
 export const extractController = async (req: Request, res: Response) => {
   const file = req.file;
-  const mode = (req.query.mode as string) || 'sync';
+  const mode = (req.query.mode as string) || 'async';
   const webhookUrl = req.body.webhookUrl;
   try {
 
