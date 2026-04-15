@@ -1,7 +1,7 @@
-import { PgBoss } from 'pg-boss';
+import { PgBoss } from "pg-boss";
 
-export const boss = new PgBoss({
-    connectionString: process.env.DATABASE_URL
-});
+const connectionString = `postgres://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
 
-export const queueName = 'extract-job'
+export const boss = new PgBoss({ connectionString });
+
+export const queueName = "extract-job";
