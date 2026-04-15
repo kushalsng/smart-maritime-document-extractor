@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
 import { extractController } from '../controllers/extract.controller';
-import { getJobController } from '../controllers/job.controller';
+import { getJobController, retryJobController } from '../controllers/job.controller';
 import { getSessionController } from '../controllers/session.controller';
 import { validateSessionController } from '../controllers/validation.controller';
 import { getSessionReportController } from '../controllers/report.controller';
@@ -29,6 +29,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 router.post('/extract', rateLimiter, upload.single('document'), extractController);
 router.get('/jobs/:jobId', getJobController);
+router.post('/jobs/:jobId/retry', retryJobController);
 router.get('/sessions/:sessionId', getSessionController);
 router.post('/sessions/:sessionId/validate', validateSessionController);
 router.get('/sessions/:sessionId/report', getSessionReportController);
