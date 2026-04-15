@@ -158,3 +158,8 @@ Includes:
 * LLM abstraction for provider swapping
 * Robust JSON parsing with retry + repair
 
+## ✨ Bonus features
+
+* Webhook support for async job completion (with HMAC signature verification)
+* Retry endpoint for failed jobs (POST /api/jobs/:jobId/retry)
+* Rate limiting on extract endpoint (10 requests/min per IP)
