@@ -62,16 +62,16 @@ Response:
 
 ## 🧠 LLM Providers
 
-Provider is configurable via env:
+Provider is configurable via env file (provider and model names are CASE SENSITIVE)
 
 | Provider           | Model                        |
 | ------------------ | ---------------------------- |
-| Google Gemini      | gemini-2.0-flash             |
-| Groq               | llama-3.2-11b-vision-preview |
-| Mistral            | pixtral-12b-2409             |
-| Ollama             | llava (local)                |
-| Anthropic Claude   | claude-haiku-4-5-20251001    |
-| OpenAI             | gpt-4o-mini                  |
+| gemini             | gemini-2.0-flash             |
+| groq               | llama-3.2-11b-vision-preview |
+| mistral            | pixtral-12b-2409             |
+| ollama             | llava (local)                |
+| anthropic          | claude-haiku-4-5-20251001    |
+| openai             | gpt-4o-mini                  |
 
 ---
 
