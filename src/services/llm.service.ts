@@ -5,6 +5,7 @@ import {
 } from "../util/prompt-builder";
 import { timeout } from "../util/misc";
 import { getLLMProvider } from "../providers/llm.provider.instance";
+import { MimeType } from "../types/extraction.types";
 
 const LLM_TIMEOUT_MS = 30_000;
 
@@ -13,7 +14,7 @@ const withTimeout = async <T>(operation: Promise<T>) =>
 
 export const llmExecutor = async (
   prompt: string,
-  mimeType: string,
+  mimeType: MimeType,
   fileName?: string
 ) => {
   const provider = getLLMProvider();

@@ -1,8 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { LLMProvider } from '../services/llm/llm.interface';
 import { TextBlock } from '@anthropic-ai/sdk/resources.js';
-
-type MimeType  ="image/jpeg" | "image/png" | "image/gif" | "image/webp"
+import { AnthropicMimeType, MimeType } from '../types/extraction.types';
 
 export class AnthropicProvider implements LLMProvider {
   private client = new Anthropic({
@@ -21,7 +20,7 @@ export class AnthropicProvider implements LLMProvider {
               type: 'image',
               source: {
                 type: 'base64',
-                media_type: mimeType,
+                media_type: mimeType as AnthropicMimeType,
                 data: base64,
               },
             },

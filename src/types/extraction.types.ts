@@ -186,3 +186,6 @@ export type HolderProfile = {
   nationality: string | null;
   detectedRole: string | null;
 }
+
+export type AnthropicMimeType = "image/jpeg" | "image/png" | "image/gif" | "image/webp"
+export type MimeType = AnthropicMimeType | "text/plain" | "application/pdf"
