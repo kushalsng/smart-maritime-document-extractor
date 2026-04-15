@@ -1,198 +1,78 @@
 # Architecture Decision Record (ADR)
 
-## Overview
-
-This system is designed to extract, validate, and analyze maritime documents using LLMs with support for both synchronous and asynchronous processing. The architecture prioritizes reliability, modularity, and extensibility while keeping operational complexity low for the scope of this assignment.
-
----
-
 ## Question 1 — Sync vs Async
 
-In production, **async processing should be the default**.
+**Which mode should be the default and why?**
+In a production environment, `?mode=async` must be the default. The core operation of this service involves processing files and orchestrating calls to external Large Language Models (LLMs). LLM execution times are inherently unpredictable, often taking anywhere from 5 to over 30 seconds for complex vision-based extractions. Running these operations synchronously holds open HTTP connections for extended periods, leading to a high risk of gateway timeouts, server thread exhaustion, and poor user experience. An async-first approach (using the queue mechanism) ensures the API responds immediately (HTTP 202 Accepted) and allows the server to manage throughput predictably without dropping connections.
 
-While synchronous mode provides a better user experience for small, single-document uploads, it does not scale well due to the unpredictable latency of LLM calls. Async processing decouples request handling from execution, prevents request timeouts, and allows better control over retries and failures.
-
-**Default Decision:**
-
-* Default: `async`
-* Allow `sync` only for small files and low concurrency scenarios
-
-**Thresholds to force async:**
-
-* File size > **5 MB**
-* Concurrent requests > **5–10 active extractions**
-* Any request involving multi-document validation
-
-Beyond these thresholds, forcing async ensures system stability and prevents blocking the API layer.
+**At what file size or concurrency threshold would you force async?**
+Synchronous requests should be strictly bounded. I would force async regardless of the `?mode` parameter if:
+1. **File Size/Complexity**: The uploaded file exceeds 2MB or a multi-page PDF exceeds 3 pages. Large files require more token processing and drastically increase latency.
+2. **Concurrency**: The server is currently handling more than 5-10 concurrent synchronous extractions (depending on the provider's rate limits and our worker scaling). Accepting more sync requests during high load will inevitably lead to compounding delays and cascading failures.
 
 ---
 
 ## Question 2 — Queue Choice
 
-The system uses **pg-boss**, a PostgreSQL-backed job queue.
+**What queue mechanism did you use and why?**
+The service uses **pg-boss**, a job queue built on top of PostgreSQL. Since the application already requires a PostgreSQL database to persist sessions, extractions, and validations, using `pg-boss` eliminates the need to introduce, host, and monitor an additional piece of infrastructure (like Redis). It leverages Postgres's atomicity and transactional guarantees to ensure jobs are not lost. 
 
-**Why pg-boss:**
+**What would you migrate to at 500 concurrent extractions per minute?**
+At a high theoretical throughput of 500 extractions/minute, the database could experience significant IO contention and lock contention as `pg-boss` constantly polls and updates row states. At that scale, I would migrate to a dedicated, high-throughput message broker such as **AWS SQS** or a Redis-based queue like **BullMQ**. These systems are designed explicitly for ephemeral high-volume message passing and decouple the queuing load from our primary persistent data store.
 
-* No additional infrastructure required (leverages existing PostgreSQL)
-* Reliable job persistence
-* Simple integration with transactional workflows
-* Suitable for moderate workloads
-
-**Limitations:**
-
-* Throughput is constrained by database performance
-* Polling-based workers introduce latency
-* Not ideal for high-frequency job dispatching
-
-**If scaling to ~500 concurrent extractions/minute:**
-I would migrate to **Redis-based queues (e.g., BullMQ)** or a distributed system like **Kafka**.
-
-**Failure modes of current approach:**
-
-* DB connection saturation under load
-* Jobs stuck in `PROCESSING` if worker crashes mid-task
-* Increased latency due to polling
-* Limited horizontal scalability
+**What are the failure modes of the current approach?**
+1. **Database Contention**: Under heavy load, queue polling competes with standard read/write queries for database connections and CPU, potentially degrading API performance.
+2. **Stalled Jobs**: If a worker crashes mid-extraction (e.g., during a long LLM call), the job remains in an invisible locked state until the visibility timeout expires, delaying retries.
+3. **Bloat**: High job churn can lead to Postgres table bloat (dead tuples) if autovacuum isn't aggressively tuned for the `pg-boss` tables.
 
 ---
 
 ## Question 3 — LLM Provider Abstraction
 
-A **provider abstraction layer was implemented** to support multiple LLM providers without code changes.
+**Did you build a provider interface or implement against one directly?**
+Yes, a strict provider abstraction was built via the `LLMProvider` interface. 
 
-**Design:**
-A factory-based pattern selects the provider based on environment variables:
+**Justify the decision:**
+Vendor lock-in is a massive risk in the rapidly evolving generative AI space. LLM providers frequently experience downtime, alter pricing structures, or deprecate models. By abstracting the provider, we gain the flexibility to:
+- Instantly route around outages (e.g., failover from Anthropic to OpenAI).
+- Route requests based on cost/performance tradeoffs.
+- Easily integrate local offline models (like Ollama) for sensitive data or development.
 
-```ts
-LLM_PROVIDER=gemini | mistral | groq | ollama | openai
-```
-
-**Interface:**
-
-```ts
-interface LLMProvider {
-  extract(base64: string, mimeType: string, prompt: string): Promise<string>;
-  generateText(prompt: string): Promise<string>;
-}
-```
-
-**Why this approach:**
-
-* Enables switching providers without code changes
-* Supports fallback strategies in future
-* Allows benchmarking across providers
-* Keeps business logic independent of vendor APIs
-
-This abstraction is critical because LLM APIs evolve rapidly and vendor lock-in is a major risk.
+**Interface Description:**
+The interface (`src/services/llm/llm.interface.ts`) is minimalistic to ensure broad compatibility:
+- `extract(base64: string, mimeType: string, prompt: string): Promise<string>`: A unified way to pass multi-modal inputs (images/PDFs) and instructions for structural extraction.
+- `generateText(prompt: string): Promise<string>`: For standard text-only reasoning or validation steps.
 
 ---
 
 ## Question 4 — Schema Design
 
-The schema uses **JSON fields (`fields_json`, `validity_json`, etc.)** to store dynamic extraction results.
+**What are the risks of using JSONB/TEXT columns at scale?**
+The schema relies heavily on `JSONB` columns (`fields_json`, `validity_json`, `medical_data_json`, `flags_json`) to store dynamic extracted data. 
+- **Storage Bloat**: JSONB payload sizes can grow large, causing Postgres to push data to TOAST tables. This significantly impacts read performance when performing sequential scans.
+- **Index Overhead**: While Postgres allows JSONB indexing (GIN indexes), querying deep or unpredictable keys within large JSON fields is CPU-intensive and can result in poorly optimized query plans.
+- **Data Integrity**: JSON properties circumvent strict relational constraints, making it harder to enforce data consistency.
 
-**Advantages:**
-
-* Flexible schema for varying document types
-* Faster development without rigid normalization
-
-**Risks at scale:**
-
-* Poor query performance on nested JSON
-* Difficult indexing for frequently queried fields
-* Limited support for analytical queries
-* Harder to enforce data consistency
-
-**Improvements for production:**
-
-* Extract key fields into structured columns (e.g., `date_of_expiry`, `document_type`)
-* Add indexes on frequently queried fields:
-
-  * `session_id`
-  * `status`
-  * `date_of_expiry`
-* Use **GIN indexes** for JSON where necessary
-* Introduce a separate `document_fields` table for normalized querying
-
-**Example query requirement:**
-
-> “All sessions where any document has an expired COC”
-
-This becomes inefficient with JSON and should instead rely on indexed columns like:
-
-```sql
-WHERE document_type = 'COC' AND date_of_expiry < NOW()
-```
+**What would you change to support full-text search or cross-document queries?**
+If the product required querying "all sessions where any document has an expired COC", the current schema would perform poorly. To safely support complex queries, I would:
+1. **Normalize Core Fields**: Create strongly-typed, indexed relational tables for critical properties that are frequently searched (e.g., `document_type`, `expiry_date`, `holder_name`).
+2. **EAV or Granular Tables**: Create a table like `extraction_fields (extraction_id, field_key, field_value_text, status)` which allows standard B-tree indexing across all field values.
+3. **Dedicated Search Index**: For true full-text search across all extracted data, I would mirror the data into a search engine like **Elasticsearch** or use heavily optimized Postgres `tsvector` columns rather than ad-hoc JSONB path queries.
 
 ---
 
-## Question 5 — What Was Skipped
+## Question 5 — What You Skipped
 
-The following production-level features were intentionally not implemented:
+**List at least three things deliberately not implemented:**
 
-1. **Distributed Rate Limiting (Redis-based)**
+1. **Authentication and Authorization (API Keys/JWT)**
+   *Reasoning:* Skipped to focus entirely on the core business logic of LLM-based extraction. In production, this service would be entirely unusable without robust identity verification to protect sensitive user documents and prevent unauthorized API usage.
+   
+2. **Circuit Breakers and Deep Failover Logic**
+   *Reasoning:* While basic retries exist, the system lacks a Circuit Breaker (e.g., `Opossum`). Deprioritized for velocity. In production, if an LLM API goes down, continuing to send requests exhausts our own worker threads and burns rate limits. A circuit breaker combined with multi-provider failover is mandatory for high availability.
 
-   * Used in-memory rate limiting instead
-   * Reason: Simpler setup, sufficient for single-instance deployment
+3. **Comprehensive Observability and Token Tracking**
+   *Reasoning:* Skipped to limit boilerplate. In a production AI pipeline, every request needs OpenTelemetry traces to monitor token usage, latency per model, and exact prompt/response pairs. Without this, calculating unit economics (cost per extraction) and debugging hallucinations at scale is impossible.
 
-2. **Database Migrations Framework**
-
-   * No Prisma/Flyway setup
-   * Reason: Schema is small and manageable for assignment scope
-
-3. **Robust Observability (Logs, Metrics, Tracing)**
-
-   * No structured logging or monitoring system
-   * Reason: Focus was on core functionality over operational tooling
-
-4. **Worker Fault Recovery / Dead Letter Queue**
-
-   * No DLQ for failed jobs
-   * Reason: pg-boss retry + failure handling was sufficient for scope
-
-5. **Authentication & Authorization**
-
-   * APIs are open
-   * Reason: Not required for assignment
-
----
-
-## Provider Benchmark
-
-The same document was tested across two providers:
-
-| Provider                  | Accuracy | Speed        | Cost         |
-| ------------------------- | -------- | ------------ | ------------ |
-| Gemini (gemini-2.0-flash) | High     | Fast (~2–4s) | Free tier    |
-| Mistral (pixtral-12b)     | Medium   | Moderate     | Credit-based |
-
-**Conclusion:**
-Gemini was selected as the default due to better accuracy and lower cost. The abstraction layer allows switching providers if needed.
-
----
-
-## Prompt Versioning
-
-Prompt versioning is implemented using a **hash of the prompt content** stored per extraction.
-
-**Why it matters:**
-
-* Ensures reproducibility of results
-* Enables debugging when outputs change
-* Supports A/B testing of prompt improvements
-* Prevents silent regressions in extraction quality
-
-Unlike static versioning, hash-based versioning guarantees that each extraction is tied to the exact prompt used.
-
----
-
-## Summary
-
-The system balances simplicity and scalability by:
-
-* Using async processing as the default
-* Leveraging PostgreSQL for both storage and queuing
-* Abstracting LLM providers for flexibility
-* Using JSON for rapid development while acknowledging its limitations
-
-The design is suitable for moderate workloads and can evolve toward a more distributed architecture as scale increases.
+4. **Robust Rate Limiting / DoS Protection**
+   *Reasoning:* Skipped because the deployment context is assumed local/testing. Production endpoints exposing expensive and slow operations (like submitting files for OCR/LLM) require aggressive IP/User-based rate limiting via Redis to prevent intentional or accidental denial of service (and massive LLM billing spikes).
