@@ -4,18 +4,19 @@ import { Validation, ValidationResult } from '../types/extraction.types';
 
 export const saveValidation = async (
   sessionId: string,
-  result: ValidationResult
+  result: ValidationResult,
+  raw: string
 ) => {
   const id = uuidv4();
 
   const validation = await pool.query(
     `
-    INSERT INTO validations (id, session_id, result_json)
-    VALUES ($1, $2, $3)
+    INSERT INTO validations (id, session_id, result_json, raw_llm_response)
+    VALUES ($1, $2, $3, $4)
     RETURNING *;
     
   `,
-    [id, sessionId, result]
+    [id, sessionId, result, raw]
   );
 
   return validation.rows[0];

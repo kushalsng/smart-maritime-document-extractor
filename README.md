@@ -35,7 +35,7 @@ npm install
 ### 2. Start PostgreSQL (Docker)
 
 ```bash
-docker-compose up
+docker-compose up -d
 ```
 
 ### 3. Run the server

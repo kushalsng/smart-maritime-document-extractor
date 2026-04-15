@@ -59,6 +59,7 @@ CREATE TABLE validations (
   id UUID PRIMARY KEY,
   session_id UUID NOT NULL REFERENCES sessions(id),
   result_json JSONB NOT NULL,
+  raw_llm_response TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -66,6 +67,3 @@ CREATE INDEX idx_extractions_session ON extractions(session_id);
 CREATE INDEX idx_extractions_hash ON extractions(file_hash);
 CREATE INDEX idx_jobs_status ON jobs(status);
 CREATE INDEX idx_jobs_session ON jobs(session_id);
-
-CREATE UNIQUE INDEX idx_unique_file_session 
-ON extractions(file_hash, session_id);

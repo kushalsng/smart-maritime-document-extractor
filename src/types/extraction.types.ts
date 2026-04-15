@@ -90,9 +90,8 @@ export interface Job {
 export interface Validation {
   id: string;
   session_id: string;
-
   result_json: ValidationResult;
-
+  raw_llm_response: string;
   created_at: Date;
 }
 

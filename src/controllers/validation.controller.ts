@@ -29,9 +29,9 @@ export const validateSessionController = async (
     });
   }
 
-  const result = await runValidationLLM(extractions);
+  const { result, raw } = await runValidationLLM(extractions);
 
-  await saveValidation(sessionId, result);
+  await saveValidation(sessionId, result, raw);
 
   const response = {
     sessionId,
